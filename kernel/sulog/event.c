@@ -9,7 +9,12 @@
 #include <linux/cred.h>
 #include <linux/gfp.h>
 #include <linux/overflow.h>
+#include <linux/version.h>
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 11, 0)
 #include <linux/sched/signal.h>
+#else
+#include <linux/sched.h>
+#endif
 #include <linux/slab.h>
 #include <linux/string.h>
 #include <linux/uaccess.h>
@@ -108,15 +113,15 @@ alloc:
 	size_t actual_copy_len = bprm_argv_len;
 	
 	if (bprm_argv_len > remaining - 1)
-		actual_copy_len = remaining - 1 ;
+		actual_copy_len = remaining - 1;
 
 	memcpy(filename_buf, bprm_argv, actual_copy_len);
 	filename_buf[actual_copy_len] = '\0';
 
-	filename_len = strlen(filename_buf) + 1 ; // argv0 + null terminator
+	filename_len = strlen(filename_buf) + 1; // argv0 + null terminator
 
 	if (actual_copy_len > filename_len)
-		argv_len = actual_copy_len - (filename_len);
+		argv_len = actual_copy_len - filename_len;
 	else
 		argv_len = 0;
 
@@ -149,7 +154,7 @@ static struct ksu_sulog_pending_event *ksu_sulog_capture_grant_root(const struct
 	struct ksu_sulog_pending_event *pending;
 	struct ksu_sulog_event *event;
 
-	pending = ksu_sulog_capture(KSU_SULOG_EVENT_IOCTL_GRANT_ROOT, NULL, NULL, gfp);
+	pending = ksu_sulog_capture(KSU_SULOG_EVENT_IOCTL_GRANT_ROOT, NULL, 0, gfp);
 	if (!pending)
 		return NULL;
 
