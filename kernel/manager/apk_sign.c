@@ -399,7 +399,8 @@ module_param_cb(ksu_debug_manager_appid, &expected_size_ops,
 int get_pkg_from_apk_path(char *pkg, const char *path)
 {
 	int len = strlen(path);
-	if (len >= KSU_MAX_PACKAGE_NAME || len < 1)
+	// Perbaikan: Hanya cek len < 1. Jangan batasi path dengan KSU_MAX_PACKAGE_NAME
+	if (len < 1)
 		return -1;
 
 	const char *last_slash = NULL;
@@ -425,6 +426,7 @@ int get_pkg_from_apk_path(char *pkg, const char *path)
 		return -1;
 
 	int pkg_len = last_hyphen - second_last_slash - 1;
+	// Di sinilah kita mengecek panjang nama paket yang diekstrak
 	if (pkg_len >= KSU_MAX_PACKAGE_NAME || pkg_len <= 0)
 		return -1;
 
@@ -435,27 +437,57 @@ int get_pkg_from_apk_path(char *pkg, const char *path)
 	return 0;
 }
 
+/* Trusted Manager Certificates */
+#define EXPECTED_SIZE_DUMMY       0x363
+#define EXPECTED_HASH_DUMMY       "4359c171f32543394cbc23ef908c4bb94cad7c8087002ba164c8230948c21549"
+
+#define EXPECTED_SIZE_ENJOY       0x31c
+#define EXPECTED_HASH_ENJOY       "1ab6077099505a4f5ff851732d5d965a4908af7f60c871f23b4b3a58e80e6cd3"
+
+#define EXPECTED_SIZE_NEXT        0x3e6
+#define EXPECTED_HASH_NEXT        "79e590113c4c4c0c222978e413a5faa801666957b1212a328e46c00c69821bf7"
+
+#define EXPECTED_SIZE_WILD        0x381
+#define EXPECTED_HASH_WILD        "52d52d8c8bfbe53dc2b6ff1c613184e2c03013e090fe8905d8e3d5dc2658c2e4"
+
+#define EXPECTED_SIZE_RSUNTK      0x396
+#define EXPECTED_HASH_RSUNTK      "f415f4ed9435427e1fdf7f1fccd4dbc07b3d6b8751e4dbcec6f19671f427870b"
+
+#define EXPECTED_SIZE_5EC1CFF     0x180
+#define EXPECTED_HASH_5EC1CFF     "7e0c6d7278a3bb8e364e0fcba95afaf3666cf5ff3c245a3b63c8833bd0445cc4"
+
+#define EXPECTED_SIZE_OFFICIAL    0x33b
+#define EXPECTED_HASH_OFFICIAL    "c371061b19d8c7d7d6133c6a9bafe198fa944e50c1b31c9d8daa8d7f1fc2d2d6"
+
+#define EXPECTED_SIZE_KOWX712     0x375
+#define EXPECTED_HASH_KOWX712     "484fcba6e6c43b1fb09700633bf2fb4758f13cb0b2f4457b80d075084b26c588"
+
+#define EXPECTED_SIZE_RAPLIVX     0x384
+#define EXPECTED_HASH_RAPLIVX     "a9462b8b98ea1ca7901b0cbdcebfaa35f0aa95e51b01d66e6b6d2c81b97746d8"
+
 bool is_manager_apk(char *path)
 {
 #ifdef KSU_MANAGER_PACKAGE
 	char pkg[KSU_MAX_PACKAGE_NAME];
+
 	if (get_pkg_from_apk_path(pkg, path) < 0) {
 		pr_err("Failed to get package name from apk path: %s\n", path);
 		return false;
 	}
 
-	// pkg is `<real package>`
-	if (strncmp(pkg, KSU_MANAGER_PACKAGE, sizeof(KSU_MANAGER_PACKAGE))) {
+	// Perbaikan: Indentasi yang sebelumnya melompat kini sudah sejajar
+	if (strcmp(pkg, KSU_MANAGER_PACKAGE))
 		return false;
-	}
 #endif
-	
-return (check_v2_signature(path, 0x363, "4359c171f32543394cbc23ef908c4bb94cad7c8087002ba164c8230948c21549") // dummy.keystore
-	|| check_v2_signature(path, EXPECTED_MANAGER_SIZE, EXPECTED_MANAGER_HASH)  // Official KernelSU Manager
-	|| check_v2_signature(path, 0x375, "484fcba6e6c43b1fb09700633bf2fb4758f13cb0b2f4457b80d075084b26c588")  // KOWX712/KernelSU
-	|| check_v2_signature(path, 0x3e6, "79e590113c4c4c0c222978e413a5faa801666957b1212a328e46c00c69821bf7")  // rifsxd/KernelSU-Next
-	|| check_v2_signature(path, 0x396, "f415f4ed9435427e1fdf7f1fccd4dbc07b3d6b8751e4dbcec6f19671f427870b")  // rsuntk/KernelSU
-	|| check_v2_signature(path, 0x384, "a9462b8b98ea1ca7901b0cbdcebfaa35f0aa95e51b01d66e6b6d2c81b97746d8")  // RapliVx/KernelSU
-	|| check_v2_signature(path, 0x381, "52d52d8c8bfbe53dc2b6ff1c613184e2c03013e090fe8905d8e3d5dc2658c2e4")  // WildKernels/Wild_KSU
-	);
+
+	return check_v2_signature(path, EXPECTED_SIZE_DUMMY, EXPECTED_HASH_DUMMY) ||
+	       check_v2_signature(path, EXPECTED_MANAGER_SIZE, EXPECTED_MANAGER_HASH) ||
+	       check_v2_signature(path, EXPECTED_SIZE_ENJOY, EXPECTED_HASH_ENJOY) ||
+	       check_v2_signature(path, EXPECTED_SIZE_NEXT, EXPECTED_HASH_NEXT) ||
+	       check_v2_signature(path, EXPECTED_SIZE_WILD, EXPECTED_HASH_WILD) ||
+	       check_v2_signature(path, EXPECTED_SIZE_RSUNTK, EXPECTED_HASH_RSUNTK) ||
+	       check_v2_signature(path, EXPECTED_SIZE_5EC1CFF, EXPECTED_HASH_5EC1CFF) ||
+	       check_v2_signature(path, EXPECTED_SIZE_OFFICIAL, EXPECTED_HASH_OFFICIAL) ||
+	       check_v2_signature(path, EXPECTED_SIZE_KOWX712, EXPECTED_HASH_KOWX712) ||
+	       check_v2_signature(path, EXPECTED_SIZE_RAPLIVX, EXPECTED_HASH_RAPLIVX);
 }
