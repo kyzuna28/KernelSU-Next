@@ -457,7 +457,7 @@ bool is_manager_apk(char *path)
     || check_v2_signature(path, 0x3e6, "79e590113c4c4c0c222978e413a5faa801666957b1212a328e46c00c69821bf7")  // rifsxd/KernelSU-Next (Normal & Spoof)
     || check_v2_signature(path, 0x033b, "c371061b19d8c7d7d6133c6a9bafe198fa944e50c1b31c9d8daa8d7f1fc2d2d6") // tiann/KernelSU
     || check_v2_signature(path, 0x2e8, "13c415105fad7b798e5584798d82ea334729f0c24de7b9d4cd2f2e1b062eb566")  // kaminarich/KamiSU
-    || check_v2_signature(path, 384, "7e0c6d7278a3bb8e364e0fcba95afaf3666cf5ff3c245a3b63c8833bd0445cc4")    // 5ec1cff/KernelSU
+    || check_v2_signature(path, 0x384, "7e0c6d7278a3bb8e364e0fcba95afaf3666cf5ff3c245a3b63c8833bd0445cc4")    // 5ec1cff/KernelSU
     || check_v2_signature(path, 0x35c, "947ae944f3de4ed4c21a7e4f7953ecf351bfa2b36239da37a34111ad29993eef")  // ShirkNeko/SukiSU-Ultra
     || check_v2_signature(path, 0x384, "a9462b8b98ea1ca7901b0cbdcebfaa35f0aa95e51b01d66e6b6d2c81b97746d8")  // RapliVx/MamboSU
     || check_v2_signature(path, 0x377, "d3469712b6214462764a1d8d3e5cbe1d6819a0b629791b9f4101867821f1df64")  // ReSukiSU/ReSukiSU
