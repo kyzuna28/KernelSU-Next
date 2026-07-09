@@ -430,7 +430,7 @@ int get_pkg_from_apk_path(char *pkg, const char *path)
 		return -1;
 
 	// Copying the package name
-	strncpy(pkg, second_last_slash + 1, pkg_len);
+	memcpy(pkg, second_last_slash + 1, pkg_len);
 	pkg[pkg_len] = '\0';
 
 	return 0;
@@ -438,13 +438,22 @@ int get_pkg_from_apk_path(char *pkg, const char *path)
 
 bool is_manager_apk(char *path)
 {
+    char pkg[KSU_MAX_PACKAGE_NAME];
+    if (get_pkg_from_apk_path(pkg, path) < 0) {
+        pr_err("Failed to get package name from apk path: %s\n", path);
+        return false;
+    }
+
     int i;
-    for (i = 0; i < ALLOWED_MANAGER_COUNT; i++) {
-        if (check_v2_signature(path, 
-                               allowed_managers[i].sig_size, 
-                               allowed_managers[i].hash)) {
-            return true; // Ketemu yang cocok!
+    for (i = 0; i < ARRAY_SIZE(allowed_managers); i++) {
+        if (strcmp(pkg, allowed_managers[i].package_name) == 0) {
+            if (check_v2_signature(path, allowed_managers[i].sig_size, allowed_managers[i].hash)) {
+                pr_info("Next: Authorized manager detected: %s\n", pkg);
+                return true;
+            }
         }
     }
-    return false; // Gagal verifikasi
+
+    pr_err("Next: Unauthorized manager attempt: %s\n", pkg);
+    return false;
 }
