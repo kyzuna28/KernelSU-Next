@@ -69,3 +69,5 @@ static inline void ksu_invalidate_manager_uid()
 	ksu_manager_appid = KSU_INVALID_APPID;
 }
 #endif
+
+#endif
