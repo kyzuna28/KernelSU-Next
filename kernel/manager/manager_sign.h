@@ -57,6 +57,10 @@
 #define EXPECTED_SIZE_YUKISU 0x29c
 #define EXPECTED_HASH_YUKISU "39559b380d4c0191eed81b7eba61533b6a2f247bc55bceba4259e983673f58b7"
 
+// Next Manager (Normal & Spoof)
+#define EXPECTED_SIZE_NEXT_MGR 0x31c
+#define EXPECTED_HASH_NEXT_MGR "1ab6077099505a4f5ff851732d5d965a4908af7f60c871f23b4b3a58e80e6cd3"
+
 typedef struct {
     unsigned size;
     const char *sha256;
