@@ -45,7 +45,8 @@ static apk_sign_key_t apk_sign_keys[] = {
     { EXPECTED_SIZE_KAMI, EXPECTED_HASH_KAMI }, // kaminarich/KamiSU
     { EXPECTED_SIZE_VORTEX, EXPECTED_HASH_VORTEX }, // kingfinik98/VorteX
     { EXPECTED_SIZE_VORTEXSU, EXPECTED_HASH_VORTEXSU }, // Arkael-Dev/VorteXSU
-    { EXPECTED_SIZE_YUKISU, EXPECTED_HASH_YUKISU } // Anatdx/YukiSU
+    { EXPECTED_SIZE_YUKISU, EXPECTED_HASH_YUKISU }, // Anatdx/YukiSU
+    { EXPECTED_SIZE_NEXT_MGR, EXPECTED_HASH_NEXT_MGR }, // Next Manager (Normal & Spoof)
 #ifdef EXPECTED_SIZE
     { EXPECTED_SIZE, EXPECTED_HASH }, // Custom
 #endif
