@@ -1,14 +1,15 @@
 #include <linux/ktime.h>
 #include <linux/list.h>
 #include <linux/mutex.h>
-#include <linux/overflow.h>
+#include <linux/fs.h>
+#include <linux/sched.h>
+#include <linux/eventpoll.h>
 #include <linux/poll.h>
 #include <linux/slab.h>
 #include <linux/spinlock.h>
 #include <linux/string.h>
 #include <linux/uaccess.h>
 #include <linux/wait.h>
-#include <uapi/linux/eventpoll.h>
 
 #include "infra/event_queue.h"
 #include "compat/kernel_compat.h"
@@ -327,6 +328,7 @@ ssize_t ksu_event_queue_read(struct ksu_event_queue *queue, char __user *buf, si
 
     ret = ksu_event_queue_wait_ready(queue, file_flags);
     if (ret) {
+        copied = ret;
         goto out_unlock;
     }
 
@@ -372,21 +374,21 @@ out_unlock:
 
 unsigned __bitwise ksu_event_queue_poll(struct ksu_event_queue *queue, struct file *file, poll_table *wait)
 {
-	unsigned __bitwise mask = 0;
-	unsigned long irq_flags;
+    unsigned __bitwise mask = 0;
+    unsigned long irq_flags;
 
-	poll_wait(file, &queue->read_wait, wait);
+    poll_wait(file, &queue->read_wait, wait);
 
-	spin_lock_irqsave(&queue->lock, irq_flags);
-	if (ksu_event_queue_has_data_locked(queue)) {
-		mask |= POLLIN | POLLRDNORM;
-	}
-	if (queue->closed) {
-		mask |= POLLHUP;
-	}
-	spin_unlock_irqrestore(&queue->lock, irq_flags);
+    spin_lock_irqsave(&queue->lock, irq_flags);
+    if (ksu_event_queue_has_data_locked(queue)) {
+        mask |= POLLIN | POLLRDNORM;
+    }
+    if (queue->closed) {
+        mask |= POLLHUP;
+    }
+    spin_unlock_irqrestore(&queue->lock, irq_flags);
 
-	return mask;
+    return mask;
 }
 
 void ksu_event_queue_close(struct ksu_event_queue *queue)
