@@ -88,25 +88,25 @@ endif
 # Calculate version if git version is available
 ifdef KSU_GIT_VERSION_VALID
 # ksu_version: major * 30000 + git version for historical reasons
-$(eval KSU_VERSION=$(shell expr 30000 + $(KSU_GIT_VERSION) + 225))
+$(eval KSU_VERSION=$(shell expr 30000 + $(KSU_GIT_VERSION) + 223))
 $(info --> Next version: $(KSU_VERSION))
 ccflags-y += -DKSU_VERSION=$(KSU_VERSION)
 else
 # If there is no .git directory, use default version
-# $(warning "KSU_GIT_VERSION not defined! It is better to make Next a git repository!")
-KSU_VERSION_FALLBACK := 33214
-$(info --> Next version fallback: $(KSU_VERSION_FALLBACK))
+$(warning "KSU_GIT_VERSION not defined! It is better to make KernelSU-Next a git repository!")
+KSU_VERSION_FALLBACK := 1
+$(info -- Next version fallback: $(KSU_VERSION_FALLBACK))
 ccflags-y += -DKSU_VERSION=$(KSU_VERSION_FALLBACK)
 endif
 
 ifdef KSU_GIT_VERSION_VALID
-$(eval KSU_VERSION_TAG=$(KSU_GIT_TAG))
+$(eval KSU_VERSION_TAG=EnjoySU-v3.3.0)
 $(info --> Next tag: $(KSU_VERSION_TAG))
 ccflags-y += -DKSU_VERSION_TAG=\"$(KSU_VERSION_TAG)\"
 else
-# $(warning "KSU_VERSION_TAG not defined! It is better to make Next a git submodule!")
-KSU_VERSION_TAG_FALLBACK := v3.3.0
-$(info --> Next tag fallback: $(KSU_VERSION_TAG_FALLBACK))
+$(warning "KSU_VERSION_TAG not defined! It is better to make Next a git submodule!")
+KSU_VERSION_TAG_FALLBACK := v0.0.1
+$(info -- Next tag fallback: $(KSU_VERSION_TAG_FALLBACK))
 ccflags-y += -DKSU_VERSION_TAG=\"$(KSU_VERSION_TAG_FALLBACK)\"
 endif
 
@@ -118,13 +118,10 @@ ifndef KSU_NEXT_MANAGER_HASH
 KSU_NEXT_MANAGER_HASH := 1ab6077099505a4f5ff851732d5d965a4908af7f60c871f23b4b3a58e80e6cd3
 endif
 
-ccflags-y += -DKSU_MAX_PACKAGE_NAME=256
-
-ifndef KSU_MANAGER_PACKAGE
-KSU_MANAGER_PACKAGE := id.next.manager
-endif
+ifdef KSU_MANAGER_PACKAGE
 ccflags-y += -DKSU_MANAGER_PACKAGE=\"$(KSU_MANAGER_PACKAGE)\"
-$(info --> Next Manager package name: $(KSU_MANAGER_PACKAGE))
+$(info -- Next Manager package name: $(KSU_MANAGER_PACKAGE))
+endif
 
 $(info --> Next Manager signature size: $(KSU_NEXT_MANAGER_SIZE))
 $(info --> Next Manager signature hash: $(KSU_NEXT_MANAGER_HASH))
@@ -304,7 +301,8 @@ ifeq ($(shell grep -q "SEC_SELINUX_PORTING_COMMON" $(srctree)/security/selinux/a
 ccflags-y += -DSAMSUNG_SELINUX_PORTING
 endif
 
-ccflags-y += -DUSE_MULTI_MANAGER_LIST
+ccflags-y += -DEXPECTED_MANAGER_SIZE=$(KSU_NEXT_MANAGER_SIZE)
+ccflags-y += -DEXPECTED_MANAGER_HASH=\"$(KSU_NEXT_MANAGER_HASH)\"
 
 ccflags-y += -Wno-strict-prototypes -Wno-int-conversion -Wno-gcc-compat -Wno-missing-prototypes
 ccflags-y += -Wno-declaration-after-statement -Wno-unused-function -Wno-unused-variable
@@ -312,8 +310,7 @@ ccflags-y += -Wno-declaration-after-statement -Wno-unused-function -Wno-unused-v
 ## For susfs stuff ##
 ifeq ($(shell test -e $(srctree)/fs/susfs.c; echo $$?),0)
 $(eval SUSFS_VERSION=$(shell cat $(srctree)/include/linux/susfs.h | grep -E '^#define SUSFS_VERSION' | cut -d' ' -f3 | sed 's/"//g'))
-$(info )
-$(info -- SUSFS_VERSION: $(SUSFS_VERSION))
+$(info --> Next SUSFS: $(SUSFS_VERSION))
 else
 $(info -- You have not integrated susfs in your kernel yet.)
 $(info -- Read: https://gitlab.com/simonpunk/susfs4ksu)

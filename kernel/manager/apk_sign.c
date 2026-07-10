@@ -18,7 +18,6 @@
 #include "policy/app_profile.h"
 #include "klog.h" // IWYU pragma: keep
 #include "compat/kernel_compat.h"
-#include "manager_list.h"
 
 struct sdesc {
 	struct shash_desc shash;
@@ -438,22 +437,33 @@ int get_pkg_from_apk_path(char *pkg, const char *path)
 
 bool is_manager_apk(char *path)
 {
-    char pkg[KSU_MAX_PACKAGE_NAME];
-    if (get_pkg_from_apk_path(pkg, path) < 0) {
-        pr_err("Failed to get package name from apk path: %s\n", path);
-        return false;
-    }
+#ifdef KSU_MANAGER_PACKAGE
+	char pkg[KSU_MAX_PACKAGE_NAME];
+	if (get_pkg_from_apk_path(pkg, path) < 0) {
+		pr_err("Failed to get package name from apk path: %s\n", path);
+		return false;
+	}
 
-    int i;
-    for (i = 0; i < ARRAY_SIZE(allowed_managers); i++) {
-        if (strcmp(pkg, allowed_managers[i].package_name) == 0) {
-            if (check_v2_signature(path, allowed_managers[i].sig_size, allowed_managers[i].hash)) {
-                pr_info("Next: Authorized manager detected: %s\n", pkg);
-                return true;
-            }
-        }
-    }
-
-    pr_err("Next: Unauthorized manager attempt: %s\n", pkg);
-    return false;
+	// pkg is `<real package>`
+	if (strncmp(pkg, KSU_MANAGER_PACKAGE, sizeof(KSU_MANAGER_PACKAGE))) {
+		return false;
+	}
+#endif
+	return (check_v2_signature(path, EXPECTED_MANAGER_SIZE, EXPECTED_MANAGER_HASH) // Default / Custom
+    || check_v2_signature(path, 0x363, "4359c171f32543394cbc23ef908c4bb94cad7c8087002ba164c8230948c21549") // dummy.keystore
+    || check_v2_signature(path, 0x033b, "c371061b19d8c7d7d6133c6a9bafe198fa944e50c1b31c9d8daa8d7f1fc2d2d6") // tiann/KernelSU
+    || check_v2_signature(path, 384, "7e0c6d7278a3bb8e364e0fcba95afaf3666cf5ff3c245a3b63c8833bd0445cc4") // 5ec1cff/KernelSU
+    || check_v2_signature(path, 0x375, "484fcba6e6c43b1fb09700633bf2fb4758f13cb0b2f4457b80d075084b26c588") // KOWX712/KernelSU
+    || check_v2_signature(path, 0x396, "f415f4ed9435427e1fdf7f1fccd4dbc07b3d6b8751e4dbcec6f19671f427870b") // rsuntk/KernelSU
+    || check_v2_signature(path, 0x35c, "947ae944f3de4ed4c21a7e4f7953ecf351bfa2b36239da37a34111ad29993eef") // ShirkNeko/SukiSU-Ultra
+    || check_v2_signature(path, 0x384, "a9462b8b98ea1ca7901b0cbdcebfaa35f0aa95e51b01d66e6b6d2c81b97746d8") // RapliVx/MamboSU
+    || check_v2_signature(path, 0x377, "d3469712b6214462764a1d8d3e5cbe1d6819a0b629791b9f4101867821f1df64") // ReSukiSU/ReSukiSU
+    || check_v2_signature(path, 0x381, "52d52d8c8bfbe53dc2b6ff1c613184e2c03013e090fe8905d8e3d5dc2658c2e4") // WildKernels/Wild_KSU
+    || check_v2_signature(path, 0x338, "f26471a28031130362bce7eebffb9a0b8afc3095f163ce0c75a309f03b644a1f") // pershoot/KernelSU-Next
+    || check_v2_signature(path, 0x2e8, "13c415105fad7b798e5584798d82ea334729f0c24de7b9d4cd2f2e1b062eb566") // kaminarich/KamiSU
+    || check_v2_signature(path, 0x317, "4d3c9a3f40b4acab5d89d74eb5f2edf92a6af71a366b9484de507220739d025b") // kingfinik98/VorteX
+    || check_v2_signature(path, 0x29c, "39559b380d4c0191eed81b7eba61533b6a2f247bc55bceba4259e983673f58b7") // Anatdx/YukiSU
+    || check_v2_signature(path, 0x381, "67eec44718428adad14e6a9dca57822759aba7e77a8cad7071f6f6704df8bb48") // Arkael-Dev/VorteXSU
+	|| check_v2_signature(path, 0x3e6, "79e590113c4c4c0c222978e413a5faa801666957b1212a328e46c00c69821bf7") // rifsxd/KernelSU-Next
+	);
 }
