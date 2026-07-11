@@ -23,11 +23,7 @@
 #include "klog.h" // IWYU pragma: keep
 #include "manager/manager_identity.h"
 
-#include "sulog/event.h"
-
-#ifdef CONFIG_KSU_SUSFS
-bool susfs_is_boot_completed_triggered __read_mostly = false;
-#endif // #ifdef CONFIG_KSU_SUSFS
+#include "tiny_sulog.h"
 
 uint32_t ksuver_override = 0;
 
@@ -39,11 +35,6 @@ static int anon_ksu_release(struct inode *inode, struct file *filp)
 
 static long anon_ksu_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 {
-#ifdef CONFIG_KSU_SUSFS_SUS_MOUNT
-	// Di Next, trigger boot_complete dikirim via IOCTL dispatcher ke ksu_supercall_handle_ioctl.
-	// Kita intercept di sini untuk menyalakan flag SuSFS jika perintah boot_completed lewat.
-	// Catatan: KSU_CMD_REPORT_EVENT biasanya bernilai IOCTL tertentu untuk report boot_complete.
-#endif
     return ksu_supercall_handle_ioctl(cmd, (void __user *)arg);
 }
 
@@ -105,14 +96,6 @@ int ksu_handle_sys_reboot(int magic1, int magic2, unsigned int cmd,
             susfs_add_sus_path_loop(arg);
             return 0;
         }
-        if (cmd == CMD_SUSFS_SET_ANDROID_DATA_ROOT_PATH) {
-            susfs_set_i_state_on_external_dir(arg);
-            return 0;
-        }
-        if (cmd == CMD_SUSFS_SET_SDCARD_ROOT_PATH) {
-            susfs_set_i_state_on_external_dir(arg);
-            return 0;
-        }
 #endif //#ifdef CONFIG_KSU_SUSFS_SUS_PATH
 #ifdef CONFIG_KSU_SUSFS_SUS_MOUNT
         if (cmd == CMD_SUSFS_HIDE_SUS_MNTS_FOR_NON_SU_PROCS) {
@@ -170,6 +153,12 @@ int ksu_handle_sys_reboot(int magic1, int magic2, unsigned int cmd,
             return 0;
         }
 #endif // #ifdef CONFIG_KSU_SUSFS_SUS_MAP
+#ifdef CONFIG_KSU_SUSFS_SUS_MEMFD
+        if (cmd == CMD_SUSFS_ADD_SUS_MEMFD) {
+            return susfs_add_sus_memfd(arg);
+			return 0;
+        }
+#endif // #ifdef CONFIG_KSU_SUSFS_SUS_MEMFD
         if (cmd == CMD_SUSFS_ENABLE_AVC_LOG_SPOOFING) {
             susfs_set_avc_log_spoofing(arg);
             return 0;
@@ -189,6 +178,7 @@ int ksu_handle_sys_reboot(int magic1, int magic2, unsigned int cmd,
         return 0;
     }
 #endif // #ifdef CONFIG_KSU_SUSFS
+
 	// Check if this is a request to install KSU fd
 	if (magic2 == KSU_INSTALL_MAGIC2) {
 		int fd = ksu_install_fd();
@@ -228,7 +218,7 @@ int ksu_handle_sys_reboot(int magic1, int magic2, unsigned int cmd,
 		if (current_uid().val != 0)
 			return 0;
 
-		int ret = ksu_sulog_handle_compat_dump((void __user *)*arg);
+		int ret = send_sulog_dump(*arg);
 		if (ret)
 			return 0;
 
@@ -335,7 +325,7 @@ int ksu_handle_sys_reboot(int magic1, int magic2, unsigned int cmd,
 	return 0;
 }
 
-#if defined(KSU_KPROBES_HOOK) && !defined(CONFIG_KSU_SUSFS)
+#ifdef KSU_KPROBES_HOOK
 static int reboot_handler_pre(struct kprobe *p, struct pt_regs *regs)
 {
 	struct pt_regs *real_regs = PT_REAL_REGS(regs);
@@ -356,9 +346,11 @@ static struct kprobe reboot_kp = {
 
 void __init ksu_supercalls_init(void)
 {
+	int i;
+
 	ksu_supercall_dump_commands();
 
-#if defined(KSU_KPROBES_HOOK) && !defined(CONFIG_KSU_SUSFS)
+#ifdef KSU_KPROBES_HOOK
 	int rc = register_kprobe(&reboot_kp);
 	if (rc) {
 		pr_err("reboot kprobe failed: %d\n", rc);
@@ -366,13 +358,15 @@ void __init ksu_supercalls_init(void)
 		pr_info("reboot kprobe registered successfully\n");
 	}
 #endif
+
+	sulog_init_heap(); // grab heap memory
 }
 
 void __exit ksu_supercalls_exit(void){
-#if defined(KSU_KPROBES_HOOK) && !defined(CONFIG_KSU_SUSFS)
+	struct mount_entry *entry, *tmp;
+
+#ifdef KSU_KPROBES_HOOK
 	unregister_kprobe(&reboot_kp);
-#else
-	pr_info("susfs: ksu_supercalls_exit: do nothing\n");
 #endif
 
 	ksu_supercall_cleanup_state();
